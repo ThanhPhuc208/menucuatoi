@@ -1,5 +1,5 @@
 -- (Creator = Thanh Phuc)
--- 💟 Thanh Phuc - Boombox Thần Thánh V3 (Bẻ Khóa Mọi Bộ Lọc Game - Hiện 100%) 💟
+-- 💟 Thanh Phuc - Big Square Boombox V5 (In Chữ Trực Tiếp Lên Thân Loa Đen - Chớp Theo Nhạc) 💟
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
@@ -43,7 +43,7 @@ local function DestroyOldBoombox()
 end
 
 local function CreateCustomBoombox()
-    DestroyOldBoombox() -- Dọn sạch đồ cũ trước
+    DestroyOldBoombox()
     
     local character = LocalPlayer.Character
     if not character then return end
@@ -51,82 +51,79 @@ local function CreateCustomBoombox()
     local torso = character:WaitForChild("UpperTorso", 2) or character:WaitForChild("Torso", 2)
     if not torso then return end
     
-    -- THUẬT TOÁN MỚI: Đưa hẳn khối hộp vào Workspace nhưng neo giữ vị trí độc lập (Anchored = true)
+    -- 1. Thân Loa Khối Vuông Lớn Màu Đen
     BoomboxPart = Instance.new("Part")
     BoomboxPart.Name = "ThanhPhucSuperBoombox"
-    BoomboxPart.Size = Vector3.new(2.4, 1.3, 0.8)
-    BoomboxPart.Color = Color3.fromRGB(15, 15, 15) -- Thân đen huyền bí
+    BoomboxPart.Size = Vector3.new(2.4, 2.4, 1.8)
+    BoomboxPart.Color = Color3.fromRGB(15, 15, 15)
     BoomboxPart.Material = Enum.Material.SmoothPlastic
     BoomboxPart.CanCollide = false
-    BoomboxPart.Anchored = true -- Không cần dùng Weld để tránh bị game xóa
+    BoomboxPart.Anchored = true
     BoomboxPart.CastShadow = false
-    BoomboxPart.Parent = workspace -- Ép buộc render trong không gian thế giới
+    BoomboxPart.Parent = workspace
     
-    -- Tạo viền LED cầu vồng chạy quanh khối hộp
+    -- 2. Viền LED Cầu Vồng bao quanh khối vuông
     LedOutline = Instance.new("SelectionBox")
     LedOutline.Name = "RGB_Outline"
     LedOutline.Adornee = BoomboxPart
-    LedOutline.LineThickness = 0.07
+    LedOutline.LineThickness = 0.08
     LedOutline.SurfaceTransparency = 1
     LedOutline.Parent = BoomboxPart
     
-    -- Tạo bảng tên Thanh Phuc phát sáng phía sau
-    local textAttachment = Instance.new("Attachment", BoomboxPart)
-    textAttachment.CFrame = CFrame.new(0, 0, 0.42)
-    
-    local Billboard = Instance.new("BillboardGui")
-    Billboard.Size = UDim2.new(0, 200, 0, 50)
-    Billboard.AlwaysOnTop = false
-    Billboard.Adornee = textAttachment
-    Billboard.Parent = BoomboxPart
+    -- 3. THUẬT TOÁN IN CHỮ LÊN MẶT LOA ĐEN (Dùng SurfaceGui)
+    local SurfaceGui = Instance.new("SurfaceGui")
+    SurfaceGui.Name = "ThanhPhucTextDisplay"
+    SurfaceGui.Face = Enum.NormalId.Back -- In chữ lên mặt SAU của loa (Mặt quay ra ngoài cho mọi người thấy)
+    SurfaceGui.CanvasSize = Vector2.new(400, 400) -- Tạo độ phân giải cho chữ sắc nét
+    SurfaceGui.AlwaysOnTop = false -- Tắt cái này đi để chữ dính phẳng hoàn toàn vào khối đen
+    SurfaceGui.Parent = BoomboxPart
     
     NameLabel = Instance.new("TextLabel")
     NameLabel.Size = UDim2.new(1, 0, 1, 0)
     NameLabel.BackgroundTransparency = 1
     NameLabel.Text = "Thanh Phuc"
     NameLabel.Font = Enum.Font.SourceSansBold
-    NameLabel.TextSize = 30
+    NameLabel.TextSize = 55 -- Kích thước chữ lớn nằm trọn trong mặt loa
     NameLabel.TextColor3 = Color3.new(1, 1, 1)
-    NameLabel.Parent = Billboard
+    NameLabel.TextWrapped = true
+    NameLabel.Parent = SurfaceGui
 
-    -- THUẬT TOÁN KHÓA VỊ TRÍ THEO KHUNG HÌNH (RenderStepped Loop)
+    -- VÒNG LẶP KHÓA VỊ TRÍ VÀ ĐỒNG BỘ HIỆU ỨNG RAINBOW BASS
     local hue = 0
-    local baseSize = Vector3.new(2.4, 1.3, 0.8)
+    local baseSize = Vector3.new(2.4, 2.4, 1.8)
     
     VisualConnection = RunService.RenderStepped:Connect(function()
-        -- Kiểm tra nếu nhân vật chết hoặc bị xóa thì tự hồi sinh lại Boombox
         if not character or not character.Parent or not torso or not torso.Parent then
             DestroyOldBoombox()
             return
         end
         
-        -- Nếu Boombox vô tình bị game xóa, hồi sinh nó ngay lập tức
         if not BoomboxPart or not BoomboxPart.Parent then
             CreateCustomBoombox()
             return
         end
         
-        -- Khóa chặt tọa độ Boombox vào ngay sau lưng nhân vật (Cập nhật liên tục 60fps+)
-        -- CFrame.new(0, 0.2, 0.65) giúp căn chỉnh lùi ra sau lưng vừa vặn, không bị chìm vào người
-        BoomboxPart.CFrame = torso.CFrame * CFrame.new(0, 0.2, 0.65)
+        -- Giữ loa dính chặt sau lưng (độ lùi 1.1 block để không bị chìm vào người)
+        BoomboxPart.CFrame = torso.CFrame * CFrame.new(0, 0.2, 1.1)
         
-        -- Xử lý Nhịp Bass & Đổi màu Cầu Vồng
+        -- Phân tích nhịp nhạc
         local loudness = Sound1.PlaybackLoudness
         local intensity = math.clamp(loudness / 280, 0, 1.6)
         
+        -- Chạy màu cầu vồng nhấp nháy theo bass
         hue = (hue + 0.6 + (intensity * 0.4)) % 360
         local rainbowColor = Color3.fromHSV(hue / 360, 1, 0.4 + (intensity * 0.6))
         
-        -- Áp dụng hiệu ứng chớp cầu vồng
+        -- Áp dụng màu cầu vồng cho viền và chữ IN TRÊN LOA
         LedOutline.Color3 = rainbowColor
         NameLabel.TextColor3 = rainbowColor
         
-        -- Khối hộp đập nhịp to nhỏ theo Bass cực bốc
-        BoomboxPart.Size = baseSize * (1 + (intensity * 0.08))
+        -- Loa to nhỏ giật theo Bass (Chữ in trên loa cũng tự động to nhỏ đồng bộ 100%)
+        BoomboxPart.Size = baseSize * (1 + (intensity * 0.07))
     end)
 end
 
--- Theo dõi trạng thái reset nhân vật để tái kích hoạt
+-- Tự động đeo lại loa khi hồi sinh
 Players.LocalPlayer.CharacterAdded:Connect(function(char)
     if IsPlayingMusic then
         task.wait(0.5)
@@ -135,7 +132,7 @@ Players.LocalPlayer.CharacterAdded:Connect(function(char)
 end)
 
 
--- GIAO DIỆN GUI STYLE RGB ĐỒNG BỘ THEO ẢNH CỦA BẠN (1000056633.jpg)
+-- GIAO DIỆN GUI STYLE RGB ĐỒNG BỘ THEO ẢNH CỦA BẠN (1000056634.jpg)
 local ScreenGui = Instance.new("ScreenGui", PlayerGui)
 ScreenGui.ResetOnSpawn = false
 
@@ -236,7 +233,7 @@ PlayBtn.MouseButton1Click:Connect(function()
         
         IsPlayingMusic = true
         CreateCustomBoombox()
-        print("Thanh Phuc Custom Boombox V3 kích hoạt thành công!")
+        print("Thanh Phuc Boombox V5: Đã in dính chữ lên thân loa thành công!")
     else
         InputBox.Text = ""
         InputBox.PlaceholderText = "ID không hợp lệ!"
