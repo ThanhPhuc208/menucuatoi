@@ -1,5 +1,5 @@
 -- (Creator = Thanh Phuc)
--- 💟 Thanh Phuc - Boombox Black-RGB Accessory Edition (Hiện 100% khi phát nhạc) 💟
+-- 💟 Thanh Phuc - Boombox Thần Thánh V3 (Bẻ Khóa Mọi Bộ Lọc Game - Hiện 100%) 💟
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
@@ -30,13 +30,20 @@ Sound2.Looped = true
 Sound2.SoundGroup = SoundGroup
 Sound2.Parent = Sound1.Parent
 
--- Quản lý Boombox Độ
-local CurrentAccessory = nil
+-- Quản lý Hệ thống Boombox Khóa Tọa Độ
+local BoomboxPart = nil
+local LedOutline = nil
+local NameLabel = nil
 local IsPlayingMusic = false
+local VisualConnection = nil
+
+local function DestroyOldBoombox()
+    if VisualConnection then VisualConnection:Disconnect() VisualConnection = nil end
+    if BoomboxPart then pcall(function() BoomboxPart:Destroy() end) BoomboxPart = nil end
+end
 
 local function CreateCustomBoombox()
-    -- Xóa sạch thiết bị cũ nếu có
-    if CurrentAccessory then pcall(function() CurrentAccessory:Destroy() end) end
+    DestroyOldBoombox() -- Dọn sạch đồ cũ trước
     
     local character = LocalPlayer.Character
     if not character then return end
@@ -44,95 +51,86 @@ local function CreateCustomBoombox()
     local torso = character:WaitForChild("UpperTorso", 2) or character:WaitForChild("Torso", 2)
     if not torso then return end
     
-    -- 1. KHỞI TẠO DẠNG ACCESSORY (Lách luật hiển thị của Roblox)
-    CurrentAccessory = Instance.new("Accessory")
-    CurrentAccessory.Name = "ThanhPhucBoomboxAccessory"
+    -- THUẬT TOÁN MỚI: Đưa hẳn khối hộp vào Workspace nhưng neo giữ vị trí độc lập (Anchored = true)
+    BoomboxPart = Instance.new("Part")
+    BoomboxPart.Name = "ThanhPhucSuperBoombox"
+    BoomboxPart.Size = Vector3.new(2.4, 1.3, 0.8)
+    BoomboxPart.Color = Color3.fromRGB(15, 15, 15) -- Thân đen huyền bí
+    BoomboxPart.Material = Enum.Material.SmoothPlastic
+    BoomboxPart.CanCollide = false
+    BoomboxPart.Anchored = true -- Không cần dùng Weld để tránh bị game xóa
+    BoomboxPart.CastShadow = false
+    BoomboxPart.Parent = workspace -- Ép buộc render trong không gian thế giới
     
-    local handle = Instance.new("Part")
-    handle.Name = "Handle"
-    handle.Size = Vector3.new(2.4, 1.3, 0.8)
-    handle.Color = Color3.fromRGB(15, 15, 15) -- Thân loa đen ngầu
-    handle.Material = Enum.Material.SmoothPlastic
-    handle.CanCollide = false
-    handle.Massless = true
-    handle.Parent = CurrentAccessory
-    
-    -- Gắn mối nối chuẩn phụ kiện vào lưng
-    local attachment = Instance.new("Attachment")
-    attachment.Name = "BodyBackAttachment" -- Tên attachment chuẩn của Roblox để đeo lưng
-    -- Căn chỉnh tọa độ lùi ra sau lưng 0.7 block để không bị chìm vào người
-    attachment.CFrame = CFrame.new(0, 0, 0.7) * CFrame.Angles(0, math.rad(180), 0)
-    attachment.Parent = handle
-    
-    -- 2. Tạo Viền LED RGB (SelectionBox phát sáng bao quanh)
-    local LedOutline = Instance.new("SelectionBox")
+    -- Tạo viền LED cầu vồng chạy quanh khối hộp
+    LedOutline = Instance.new("SelectionBox")
     LedOutline.Name = "RGB_Outline"
-    LedOutline.Adornee = handle
-    LedOutline.LineThickness = 0.06
-    LedOutline.SurfaceColor3 = Color3.fromRGB(0, 0, 0)
+    LedOutline.Adornee = BoomboxPart
+    LedOutline.LineThickness = 0.07
     LedOutline.SurfaceTransparency = 1
-    LedOutline.Parent = handle
+    LedOutline.Parent = BoomboxPart
     
-    -- 3. Tạo Bảng Tên "Thanh Phuc" phía sau
-    local textAttachment = Instance.new("Attachment", handle)
-    textAttachment.CFrame = CFrame.new(0, 0, 0.41)
+    -- Tạo bảng tên Thanh Phuc phát sáng phía sau
+    local textAttachment = Instance.new("Attachment", BoomboxPart)
+    textAttachment.CFrame = CFrame.new(0, 0, 0.42)
     
     local Billboard = Instance.new("BillboardGui")
     Billboard.Size = UDim2.new(0, 200, 0, 50)
     Billboard.AlwaysOnTop = false
     Billboard.Adornee = textAttachment
-    Billboard.Parent = handle
+    Billboard.Parent = BoomboxPart
     
-    local NameLabel = Instance.new("TextLabel")
+    NameLabel = Instance.new("TextLabel")
     NameLabel.Size = UDim2.new(1, 0, 1, 0)
     NameLabel.BackgroundTransparency = 1
     NameLabel.Text = "Thanh Phuc"
     NameLabel.Font = Enum.Font.SourceSansBold
-    NameLabel.TextSize = 28
+    NameLabel.TextSize = 30
     NameLabel.TextColor3 = Color3.new(1, 1, 1)
     NameLabel.Parent = Billboard
 
-    -- Đội phụ kiện lên người nhân vật
-    CurrentAccessory.Parent = character
-    local human = character:FindFirstChildOfClass("Humanoid")
-    if human then
-        human:AddAccessory(CurrentAccessory)
-    end
+    -- THUẬT TOÁN KHÓA VỊ TRÍ THEO KHUNG HÌNH (RenderStepped Loop)
+    local hue = 0
+    local baseSize = Vector3.new(2.4, 1.3, 0.8)
     
-    -- VÒNG LẶP HIỆU ỨNG RAINBOW & ĐẬP THEO BASS
-    coroutine.wrap(function()
-        local hue = 0
-        local baseSize = Vector3.new(2.4, 1.3, 0.8)
-        
-        while handle and handle.Parent and CurrentAccessory.Parent == character do
-            local loudness = Sound1.PlaybackLoudness
-            local intensity = math.clamp(loudness / 280, 0, 1.6)
-            
-            hue = (hue + 0.6 + (intensity * 0.4)) % 360
-            local rainbowColor = Color3.fromHSV(hue / 360, 1, 0.4 + (intensity * 0.6))
-            
-            LedOutline.Color3 = rainbowColor
-            NameLabel.TextColor3 = rainbowColor
-            
-            -- Loa co giãn đập nhịp nhàng theo Bass
-            local scaleMultiplier = 1 + (intensity * 0.07)
-            handle.Size = baseSize * scaleMultiplier
-            
-            RunService.RenderStepped:Wait()
+    VisualConnection = RunService.RenderStepped:Connect(function()
+        -- Kiểm tra nếu nhân vật chết hoặc bị xóa thì tự hồi sinh lại Boombox
+        if not character or not character.Parent or not torso or not torso.Parent then
+            DestroyOldBoombox()
+            return
         end
-    end)()
+        
+        -- Nếu Boombox vô tình bị game xóa, hồi sinh nó ngay lập tức
+        if not BoomboxPart or not BoomboxPart.Parent then
+            CreateCustomBoombox()
+            return
+        end
+        
+        -- Khóa chặt tọa độ Boombox vào ngay sau lưng nhân vật (Cập nhật liên tục 60fps+)
+        -- CFrame.new(0, 0.2, 0.65) giúp căn chỉnh lùi ra sau lưng vừa vặn, không bị chìm vào người
+        BoomboxPart.CFrame = torso.CFrame * CFrame.new(0, 0.2, 0.65)
+        
+        -- Xử lý Nhịp Bass & Đổi màu Cầu Vồng
+        local loudness = Sound1.PlaybackLoudness
+        local intensity = math.clamp(loudness / 280, 0, 1.6)
+        
+        hue = (hue + 0.6 + (intensity * 0.4)) % 360
+        local rainbowColor = Color3.fromHSV(hue / 360, 1, 0.4 + (intensity * 0.6))
+        
+        -- Áp dụng hiệu ứng chớp cầu vồng
+        LedOutline.Color3 = rainbowColor
+        NameLabel.TextColor3 = rainbowColor
+        
+        -- Khối hộp đập nhịp to nhỏ theo Bass cực bốc
+        BoomboxPart.Size = baseSize * (1 + (intensity * 0.08))
+    end)
 end
 
--- VÒNG LẶP GIỮ LOA KHI DIE / HỒI SINH
-RunService.Heartbeat:Connect(function()
+-- Theo dõi trạng thái reset nhân vật để tái kích hoạt
+Players.LocalPlayer.CharacterAdded:Connect(function(char)
     if IsPlayingMusic then
-        local character = LocalPlayer.Character
-        if character and character:IsDescendantOf(workspace) then
-            -- Nếu đang bật nhạc mà nhân vật thiếu phụ kiện boombox, tạo lại ngay
-            if not character:FindFirstChild("ThanhPhucBoomboxAccessory") then
-                CreateCustomBoombox()
-            end
-        end
+        task.wait(0.5)
+        CreateCustomBoombox()
     end
 end)
 
@@ -238,7 +236,7 @@ PlayBtn.MouseButton1Click:Connect(function()
         
         IsPlayingMusic = true
         CreateCustomBoombox()
-        print("Thanh Phuc Custom Boombox kích hoạt thành công!")
+        print("Thanh Phuc Custom Boombox V3 kích hoạt thành công!")
     else
         InputBox.Text = ""
         InputBox.PlaceholderText = "ID không hợp lệ!"
