@@ -1,21 +1,21 @@
 -- (Creator = Thanh Phuc)
--- 💟 Thanh Phuc - Boombox Cầu Vồng Ảo Siêu Cấp V2 (Chống lỗi khi Die/Hồi sinh) 💟
+-- 💟 Thanh Phuc - Boombox Black-RGB Custom (Nháy Theo Nhịp Bass + Khóa Chặt Khi Die) 💟
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
 local RunService = game:GetService("RunService")
 local SoundService = game:GetService("SoundService")
 
--- HỆ THỐNG ÂM THANH KÉP (DUAL SOUND) CHỐNG RÈ & TĂNG BASS
+-- HỆ THỐNG ÂM THANH KÉP CHỐNG RÈ & BASS ĐẬP ẤM
 local SoundGroup = Instance.new("SoundGroup")
 SoundGroup.Name = "ThanhPhucAudioGroup"
-SoundGroup.Volume = 1.5 
+SoundGroup.Volume = 1.6 -- Tăng nhẹ volume tổng cho căng tai
 SoundGroup.Parent = SoundService
 
 local EQ = Instance.new("EqualizerSoundEffect")
-EQ.LowGain = 6   
-EQ.MidGain = 1   
-EQ.HighGain = -2 
+EQ.LowGain = 7.5  -- Bass trầm ấm, lực đập mạnh mẽ
+EQ.MidGain = 0.5  -- Giữ âm trung trong trẻo
+EQ.HighGain = -3  -- Cắt bớt treble cao để tuyệt đối chống rè
 EQ.Parent = SoundGroup
 
 local Sound1 = Instance.new("Sound")
@@ -30,90 +30,116 @@ Sound2.Looped = true
 Sound2.SoundGroup = SoundGroup
 Sound2.Parent = Sound1.Parent
 
--- Quản lý Boombox
-local FakeBoombox = nil
+-- Quản lý Boombox Độ
 local BoomboxPart = nil
-local IsPlayingMusic = false -- Biến đánh dấu xem bạn có đang bật nhạc hay không
+local IsPlayingMusic = false
 
-local function CreateFakeBoombox()
-    -- Xóa cái cũ nếu có để tránh trùng lặp
-    if FakeBoombox then pcall(function() FakeBoombox:Destroy() end) end
+local function CreateCustomBoombox()
+    -- Dọn dẹp thiết bị cũ tránh trùng lặp
     if BoomboxPart then pcall(function() BoomboxPart:Destroy() end) end
     
     local character = LocalPlayer.Character
     if not character then return end
     
-    -- Chờ nhân vật tải xong hoàn toàn phần thân
+    -- Tự động tương thích cả R6 và R15 (UpperTorso hoặc Torso)
     local torso = character:WaitForChild("UpperTorso", 2) or character:WaitForChild("Torso", 2)
     if not torso then return end
     
-    -- Tạo Part chứa Boombox
+    -- 1. Tạo Khối Hộp Thân Loa (Màu đen huyền bí như bạn yêu cầu)
     BoomboxPart = Instance.new("Part")
     BoomboxPart.Name = "ThanhPhucBoombox"
-    BoomboxPart.Size = Vector3.new(2, 2, 2)
+    BoomboxPart.Size = Vector3.new(2.4, 1.3, 0.8) -- Tỷ lệ khối chữ nhật boombox chuẩn đeo lưng
+    BoomboxPart.Color = Color3.fromRGB(15, 15, 15) -- Màu đen mờ cực ngầu
+    BoomboxPart.Material = Enum.Material.SmoothPlastic
     BoomboxPart.CanCollide = false
     BoomboxPart.Massless = true
-    BoomboxPart.Material = Enum.Material.Neon
     BoomboxPart.Parent = character
     
-    FakeBoombox = Instance.new("SpecialMesh")
-    FakeBoombox.MeshId = "rbxassetid://114134812"
-    FakeBoombox.TextureId = "rbxassetid://114134769"
-    FakeBoombox.Parent = BoomboxPart
-    
-    -- Gắn chặt Boombox vào lưng
+    -- Gắn chặt vào lưng
     local weld = Instance.new("Weld")
     weld.Part0 = torso
     weld.Part1 = BoomboxPart
-    weld.C0 = CFrame.new(0, 0, 0.7) * CFrame.Angles(0, math.rad(180), 0)
+    weld.C0 = CFrame.new(0, 0.2, 0.65) * CFrame.Angles(0, math.rad(0), 0)
     weld.Parent = BoomboxPart
     
-    -- VÒNG LẶP ĐỒNG BỘ HIỆU ỨNG THEO NHỊP NHẠC (VISUALIZER)
+    -- 2. Tạo Viền LED RGB xung quanh khối hộp (Bằng hệ thống SelectionBox cao cấp)
+    local LedOutline = Instance.new("SelectionBox")
+    LedOutline.Name = "RGB_Outline"
+    LedOutline.Adornee = BoomboxPart
+    LedOutline.LineThickness = 0.06 -- Độ dày đường viền LED
+    LedOutline.SurfaceColor3 = Color3.fromRGB(0, 0, 0)
+    LedOutline.SurfaceTransparency = 1
+    LedOutline.Parent = BoomboxPart
+    
+    -- 3. Tạo Bảng Tên "Thanh Phuc" phát sáng phía sau mặt loa
+    local Attachment = Instance.new("Attachment", BoomboxPart)
+    Attachment.CFrame = CFrame.new(0, 0, 0.41) -- Đưa ra bề mặt phía sau lưng để người khác nhìn thấy
+    
+    local Billboard = Instance.new("BillboardGui")
+    Billboard.Size = UDim2.new(0, 200, 0, 50)
+    Billboard.AlwaysOnTop = false -- Không bị xuyên tường, nhìn như tem dán trên loa
+    Billboard.ExtentsOffsetInSpace = Vector3.new(0, 0, 0)
+    Billboard.Adornee = Attachment
+    Billboard.Parent = BoomboxPart
+    
+    local NameLabel = Instance.new("TextLabel")
+    NameLabel.Size = UDim2.new(1, 0, 1, 0)
+    NameLabel.BackgroundTransparency = 1
+    NameLabel.Text = "Thanh Phuc"
+    NameLabel.Font = Enum.Font.SourceSansBold
+    NameLabel.TextSize = 28 -- Kích thước chữ in đậm nổi bật
+    NameLabel.TextColor3 = Color3.new(1, 1, 1)
+    NameLabel.Parent = Billboard
+
+    -- VÒNG LẶP ĐỒNG BỘ HIỆU ỨNG NHÁY THEO NHỊP BASS & RAINBOW
     coroutine.wrap(function()
         local hue = 0
-        local baseSize = Vector3.new(1, 1, 1)
+        local baseSize = Vector3.new(2.4, 1.3, 0.8)
         
-        -- Vòng lặp sẽ chạy liên tục cho đến khi Part này bị hủy (khi nhân vật chết)
         while BoomboxPart and BoomboxPart.Parent and BoomboxPart:IsDescendantOf(workspace) do
+            -- Phân tích độ dập Bass thực tế từ bài nhạc
             local loudness = Sound1.PlaybackLoudness
-            local intensity = math.clamp(loudness / 300, 0, 1.5)
+            local intensity = math.clamp(loudness / 280, 0, 1.6) -- Chuẩn hóa độ mạnh nhịp nhạc
             
-            hue = (hue + 0.5 + (intensity * 0.5)) % 360
-            local color = Color3.fromHSV(hue / 360, 0.9, 0.5 + (intensity * 0.5))
+            -- Tốc độ chuyển màu Rainbow mượt mà phối hợp với nhịp Bass
+            hue = (hue + 0.6 + (intensity * 0.4)) % 360
+            local rainbowColor = Color3.fromHSV(hue / 360, 1, 0.4 + (intensity * 0.6))
             
-            BoomboxPart.Color = color
-            FakeBoombox.VertexColor = Vector3.new(color.R, color.G, color.B)
+            -- Áp dụng hiệu ứng chớp theo nhạc lên Viền LED và Chữ Tên Bạn
+            LedOutline.Color3 = rainbowColor
+            NameLabel.TextColor3 = rainbowColor
             
-            local scaleMultiplier = 1 + (intensity * 0.08)
-            FakeBoombox.Scale = baseSize * scaleMultiplier
+            -- Hiệu ứng dập loa (Pulse Effect): Khối hộp đập giật nhẹ to/nhỏ cực khớp theo tiếng bass
+            local scaleMultiplier = 1 + (intensity * 0.07) -- Độ co giãn vừa phải không bị lố
+            BoomboxPart.Size = baseSize * scaleMultiplier
             
             RunService.RenderStepped:Wait()
         end
     end)()
 end
 
--- VÒNG LẶP THẦN THÁNH: Kiểm tra và tự động đeo lại loa mãi mãi khi hồi sinh
+-- VÒNG LẶP KHÓA CHẶT: Giữ loa luôn dính sau lưng kể cả khi Die/Hồi sinh
 RunService.Heartbeat:Connect(function()
     if IsPlayingMusic then
         local character = LocalPlayer.Character
         if character and character:IsDescendantOf(workspace) then
-            -- Nếu đang bật nhạc mà trên người không thấy Part Boombox, tiến hành đeo lại ngay
+            -- Nếu đang bật nhạc mà trên người bị mất Part loa (do die/respawn), dán lại ngay lập tức
             if not character:FindFirstChild("ThanhPhucBoombox") then
-                CreateFakeBoombox()
+                CreateCustomBoombox()
             end
         end
     end
 end)
 
 
--- TẠO GIAO DIỆN GUI STYLE RGB PREMIUM
+-- GIAO DIỆN GUI STYLE RGB ĐỒNG BỘ THEO ẢNH CỦA BẠN
 local ScreenGui = Instance.new("ScreenGui", PlayerGui)
 ScreenGui.ResetOnSpawn = false
 
 local MainFrame = Instance.new("Frame", ScreenGui)
 MainFrame.Size = UDim2.new(0, 260, 0, 230)
 MainFrame.Position = UDim2.new(0.5, -130, 0.4, 0)
-MainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+MainFrame.BackgroundColor3 = Color3.fromRGB(18, 18, 18)
 MainFrame.Draggable = true
 MainFrame.Active = true
 MainFrame.Visible = true
@@ -135,9 +161,9 @@ local HideBtn = Instance.new("TextButton", MainFrame)
 HideBtn.Size = UDim2.new(0, 30, 0, 30)
 HideBtn.Position = UDim2.new(0.85, 0, 0.05, 0)
 HideBtn.Text = "×"
-HideBtn.TextSize = 20
+HideBtn.TextSize = 22
 HideBtn.TextColor3 = Color3.new(1, 1, 1)
-HideBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+HideBtn.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
 Instance.new("UICorner", HideBtn).CornerRadius = UDim.new(0, 8)
 HideBtn.MouseButton1Click:Connect(function() MainFrame.Visible = false end)
 
@@ -148,12 +174,13 @@ OpenBtn.Text = "TP 🎵"
 OpenBtn.Font = Enum.Font.SourceSansBold
 OpenBtn.TextSize = 16
 OpenBtn.TextColor3 = Color3.new(1, 1, 1)
-OpenBtn.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+OpenBtn.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
 OpenBtn.Draggable = true
 OpenBtn.Active = true
 Instance.new("UICorner", OpenBtn).CornerRadius = UDim.new(0, 15)
 local ButtonStroke = Instance.new("UIStroke", OpenBtn)
 ButtonStroke.Thickness = 2
+
 coroutine.wrap(function()
     local h = 0
     while task.wait() do
@@ -179,7 +206,7 @@ InputBox.Position = UDim2.new(0.05, 0, 0.25, 0)
 InputBox.PlaceholderText = "Nhập ID nhạc..."
 InputBox.Font = Enum.Font.SourceSans
 InputBox.TextSize = 16
-InputBox.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+InputBox.BackgroundColor3 = Color3.fromRGB(32, 32, 32)
 InputBox.TextColor3 = Color3.new(1, 1, 1)
 Instance.new("UICorner", InputBox).CornerRadius = UDim.new(0, 8)
 
@@ -190,7 +217,7 @@ PlayBtn.Text = "PHÁT AUDIO KÉP"
 PlayBtn.Font = Enum.Font.SourceSansBold
 PlayBtn.TextSize = 16
 PlayBtn.TextColor3 = Color3.new(1, 1, 1)
-PlayBtn.BackgroundColor3 = Color3.fromRGB(0, 180, 90)
+PlayBtn.BackgroundColor3 = Color3.fromRGB(0, 175, 85)
 Instance.new("UICorner", PlayBtn).CornerRadius = UDim.new(0, 8)
 
 PlayBtn.MouseButton1Click:Connect(function()
@@ -204,12 +231,11 @@ PlayBtn.MouseButton1Click:Connect(function()
         Sound1:Play()
         Sound2:Play()
         
-        IsPlayingMusic = true -- Đánh dấu đang bật nhạc thành công
-        CreateFakeBoombox()
-        print("Thanh Phuc Music đang phát + Đã khóa Boombox vào nhân vật!")
+        IsPlayingMusic = true
+        CreateCustomBoombox()
+        print("Thanh Phuc Custom Boombox kích hoạt thành công!")
     else
         InputBox.Text = ""
         InputBox.PlaceholderText = "ID không hợp lệ!"
     end
 end)
-
